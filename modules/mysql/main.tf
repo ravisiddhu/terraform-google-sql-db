@@ -32,6 +32,9 @@ locals {
 
   retained_backups = lookup(var.backup_configuration, "retained_backups", null)
   retention_unit   = lookup(var.backup_configuration, "retention_unit", null)
+
+  // Force the usage of connector_enforcement
+  connector_enforcement = var.connector_enforcement ? "REQUIRED" : "NOT_REQUIRED"
 }
 
 resource "random_id" "suffix" {
@@ -55,6 +58,8 @@ resource "google_sql_database_instance" "default" {
     activation_policy           = var.activation_policy
     availability_type           = var.availability_type
     deletion_protection_enabled = var.deletion_protection_enabled
+    connector_enforcement       = local.connector_enforcement
+
     dynamic "backup_configuration" {
       for_each = [var.backup_configuration]
       content {
@@ -104,10 +109,11 @@ resource "google_sql_database_instance" "default" {
     dynamic "ip_configuration" {
       for_each = [local.ip_configurations[local.ip_configuration_enabled ? "enabled" : "disabled"]]
       content {
-        ipv4_enabled       = lookup(ip_configuration.value, "ipv4_enabled", null)
-        private_network    = lookup(ip_configuration.value, "private_network", null)
-        require_ssl        = lookup(ip_configuration.value, "require_ssl", null)
-        allocated_ip_range = lookup(ip_configuration.value, "allocated_ip_range", null)
+        ipv4_enabled                                  = lookup(ip_configuration.value, "ipv4_enabled", null)
+        private_network                               = lookup(ip_configuration.value, "private_network", null)
+        require_ssl                                   = lookup(ip_configuration.value, "require_ssl", null)
+        allocated_ip_range                            = lookup(ip_configuration.value, "allocated_ip_range", null)
+        enable_private_path_for_google_cloud_services = lookup(ip_configuration.value, "enable_private_path_for_google_cloud_services", false)
 
         dynamic "authorized_networks" {
           for_each = lookup(ip_configuration.value, "authorized_networks", [])
